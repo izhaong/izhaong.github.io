@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+    <meta charset="UTF-8">
+
+    
+
+    
+
+    <title>Webpack 性能优化 | 仲灏的博客</title>
+    <meta name="author" content="仲灏">
+    <meta name="version" content="1.0.0">
+    <meta name="keywords" content>
+    <meta name="description" content="减少 Webpack 打包时间优化 Loader对于 Loader 来说，影响打包效率首当其冲必属 Babel 了。因为 Babel 会将代码转为字符串生成 AST，然后对 AST 继续进行转变最后再生成新的代码，项目越大，转换代码越多，效率就越低。当然了，我们是有办法优化的。首先我们可以优化 Loader 的文件搜索范围123456789101112131415module.exports = &amp;#123;  module: &amp;#123;    rules: [      &amp;#12...">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+
+    
+    <link rel="alternate" href="/atom.xml" title="仲灏的博客" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/images/favicon.ico">
+    
+
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+    <main class="app">
+        <header class="header clearfix">
+    <div id="nav" class="nav">
+    <div class="nav-mobile">
+        <button id="open-panel" class="open-panel nav-mobile-item"><i class="icon-documents"></i></button>
+        <h1 class="nav-mobile-title nav-mobile-item">仲灏的博客</h1>
+        <button id="open-menus" class="open-panel nav-mobile-item"><i class="icon-library"></i></button>
+    </div>
+
+    <nav id="nav-inner" class="nav-inner">
+        
+            <a class="nav-item" href="/">
+                <span class="nav-text">首页</span>
+            </a>
+        
+            <a class="nav-item" href="/categories/front-end">
+                <span class="nav-text">前端</span>
+            </a>
+        
+            <a class="nav-item" href="/categories/back-end">
+                <span class="nav-text">后端</span>
+            </a>
+        
+            <a class="nav-item" href="/tags">
+                <span class="nav-text">标签</span>
+            </a>
+        
+            <a class="nav-item" href="/archives">
+                <span class="nav-text">归档</span>
+            </a>
+        
+            <a class="nav-item" href="/atom.xml">
+                <span class="nav-text">订阅</span>
+            </a>
+        
+            <a class="nav-item" href="/about">
+                <span class="nav-text">关于</span>
+            </a>
+        
+    </nav>
+</div>
+
+    <aside id="aside" class="aside">
+    <div id="aside-mask" class="aside-mask"></div>
+    <div id="aside-inner" class="aside-inner">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit"><i class="icon-search-stroke"></i></button><input type="hidden" name="sitesearch" value="https://zhonghao9527.xyz"></form>
+
+        
+        
+        
+        
+
+        
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#减少-Webpack-打包时间"><span class="toc-number">1.</span> <span class="toc-text">减少 Webpack 打包时间</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#优化-Loader"><span class="toc-number">1.1.</span> <span class="toc-text">优化 Loader</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#HappyPack"><span class="toc-number">1.2.</span> <span class="toc-text">HappyPack</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#DllPlugin"><span class="toc-number">1.3.</span> <span class="toc-text">DllPlugin</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#代码压缩"><span class="toc-number">1.4.</span> <span class="toc-text">代码压缩</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#一些小的优化点"><span class="toc-number">1.5.</span> <span class="toc-text">一些小的优化点</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#减少-Webpack-打包后的文件体积"><span class="toc-number">2.</span> <span class="toc-text">减少 Webpack 打包后的文件体积</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#按需加载"><span class="toc-number">2.1.</span> <span class="toc-text">按需加载</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Scope-Hoisting"><span class="toc-number">2.2.</span> <span class="toc-text">Scope Hoisting</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Tree-Shaking"><span class="toc-number">2.3.</span> <span class="toc-text">Tree Shaking</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#小结"><span class="toc-number">3.</span> <span class="toc-text">小结</span></a></li></ol>
+        
+    </div>
+</aside>
+
+</header>
+
+        <div id="content" class="content"><article class="article" itemscope itemprop="blogPost">
+    
+    <header class="article-header">
+        
+        <h1 itemprop="name">
+            Webpack 性能优化
+        </h1>
+        
+        <div class="article-meta clearfix">
+            <a class="article-date" href="https://zhonghao9527.xyz/2019/07/13/Webpack 性能优化/index.html">
+    
+    <i class="icon-calendar"></i>
+    
+    <time datetime="2019-07-12T16:35:42.277Z" itemprop="datePublished">2019-07-13</time>
+</a>
+
+            
+<div class="article-tag-list">
+    <i class="icon-tag"></i>
+    <a class="article-tag-link" href="/tags/Webpack/">Webpack</a>
+</div>
+
+
+        </div>
+    </header>
+    
+    <section class="article-body markdown-body">
+        
+        <h2 id="减少-Webpack-打包时间"><a href="#减少-Webpack-打包时间" class="headerlink" title="减少 Webpack 打包时间"></a>减少 Webpack 打包时间</h2><h3 id="优化-Loader"><a href="#优化-Loader" class="headerlink" title="优化 Loader"></a>优化 Loader</h3><p>对于 Loader 来说，影响打包效率首当其冲必属 Babel 了。因为 Babel 会将代码转为字符串生成 AST，然后对 AST 继续进行转变最后再生成新的代码，项目越大，<strong>转换代码越多，效率就越低</strong>。当然了，我们是有办法优化的。</p>
+<p>首先我们可以<strong>优化 Loader 的文件搜索范围</strong></p>
+<a id="more"></a>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">module.exports = &#123;</span><br><span class="line">  module: &#123;</span><br><span class="line">    rules: [</span><br><span class="line">      &#123;</span><br><span class="line">        // js 文件才使用 babel</span><br><span class="line">        test: /\.js$/,</span><br><span class="line">        loader: &apos;babel-loader&apos;,</span><br><span class="line">        // 只在 src 文件夹下查找</span><br><span class="line">        include: [resolve(&apos;src&apos;)],</span><br><span class="line">        // 不会去查找的路径</span><br><span class="line">        exclude: /node_modules/</span><br><span class="line">      &#125;</span><br><span class="line">    ]</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>对于 Babel 来说，我们肯定是希望只作用在 JS 代码上的，然后 <code>node_modules</code> 中使用的代码都是编译过的，所以我们也完全没有必要再去处理一遍。</p>
+<p>当然这样做还不够，我们还可以将 Babel 编译过的文件<strong>缓存</strong>起来，下次只需要编译更改过的代码文件即可，这样可以大幅度加快打包时间</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">loader: &apos;babel-loader?cacheDirectory=true&apos;</span><br></pre></td></tr></table></figure>
+
+<h3 id="HappyPack"><a href="#HappyPack" class="headerlink" title="HappyPack"></a>HappyPack</h3><p>受限于 Node 是单线程运行的，所以 Webpack 在打包的过程中也是单线程的，特别是在执行 Loader 的时候，长时间编译的任务很多，这样就会导致等待的情况。</p>
+<p><strong>HappyPack 可以将 Loader 的同步执行转换为并行的</strong>，这样就能充分利用系统资源来加快打包效率了</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">module: &#123;</span><br><span class="line">  loaders: [</span><br><span class="line">    &#123;</span><br><span class="line">      test: /\.js$/,</span><br><span class="line">      include: [resolve(&apos;src&apos;)],</span><br><span class="line">      exclude: /node_modules/,</span><br><span class="line">      // id 后面的内容对应下面</span><br><span class="line">      loader: &apos;happypack/loader?id=happybabel&apos;</span><br><span class="line">    &#125;</span><br><span class="line">  ]</span><br><span class="line">&#125;,</span><br><span class="line">plugins: [</span><br><span class="line">  new HappyPack(&#123;</span><br><span class="line">    id: &apos;happybabel&apos;,</span><br><span class="line">    loaders: [&apos;babel-loader?cacheDirectory&apos;],</span><br><span class="line">    // 开启 4 个线程</span><br><span class="line">    threads: 4</span><br><span class="line">  &#125;)</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+
+<h3 id="DllPlugin"><a href="#DllPlugin" class="headerlink" title="DllPlugin"></a>DllPlugin</h3><p><strong>DllPlugin 可以将特定的类库提前打包然后引入</strong>。这种方式可以极大的减少打包类库的次数，只有当类库更新版本才有需要重新打包，并且也实现了将公共代码抽离成单独文件的优化方案。</p>
+<p>接下来我们就来学习如何使用 DllPlugin</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">// 单独配置在一个文件中</span><br><span class="line">// webpack.dll.conf.js</span><br><span class="line">const path = require(&apos;path&apos;)</span><br><span class="line">const webpack = require(&apos;webpack&apos;)</span><br><span class="line">module.exports = &#123;</span><br><span class="line">  entry: &#123;</span><br><span class="line">    // 想统一打包的类库</span><br><span class="line">    vendor: [&apos;react&apos;]</span><br><span class="line">  &#125;,</span><br><span class="line">  output: &#123;</span><br><span class="line">    path: path.join(__dirname, &apos;dist&apos;),</span><br><span class="line">    filename: &apos;[name].dll.js&apos;,</span><br><span class="line">    library: &apos;[name]-[hash]&apos;</span><br><span class="line">  &#125;,</span><br><span class="line">  plugins: [</span><br><span class="line">    new webpack.DllPlugin(&#123;</span><br><span class="line">      // name 必须和 output.library 一致</span><br><span class="line">      name: &apos;[name]-[hash]&apos;,</span><br><span class="line">      // 该属性需要与 DllReferencePlugin 中一致</span><br><span class="line">      context: __dirname,</span><br><span class="line">      path: path.join(__dirname, &apos;dist&apos;, &apos;[name]-manifest.json&apos;)</span><br><span class="line">    &#125;)</span><br><span class="line">  ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后我们需要执行这个配置文件生成依赖文件，接下来我们需要使用 <code>DllReferencePlugin</code> 将依赖文件引入项目中</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">// webpack.conf.js</span><br><span class="line">module.exports = &#123;</span><br><span class="line">  // ...省略其他配置</span><br><span class="line">  plugins: [</span><br><span class="line">    new webpack.DllReferencePlugin(&#123;</span><br><span class="line">      context: __dirname,</span><br><span class="line">      // manifest 就是之前打包出来的 json 文件</span><br><span class="line">      manifest: require(&apos;./dist/vendor-manifest.json&apos;),</span><br><span class="line">    &#125;)</span><br><span class="line">  ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="代码压缩"><a href="#代码压缩" class="headerlink" title="代码压缩"></a>代码压缩</h3><p>在 Webpack3 中，我们一般使用 <code>UglifyJS</code> 来压缩代码，但是这个是单线程运行的，为了加快效率，我们可以使用 <code>webpack-parallel-uglify-plugin</code> 来并行运行 <code>UglifyJS</code>，从而提高效率。</p>
+<p>在 Webpack4 中，我们就不需要以上这些操作了，只需要将 <code>mode</code> 设置为 <code>production</code> 就可以默认开启以上功能。代码压缩也是我们必做的性能优化方案，当然我们不止可以压缩 JS 代码，还可以压缩 HTML、CSS 代码，并且在压缩 JS 代码的过程中，我们还可以通过配置实现比如删除 <code>console.log</code> 这类代码的功能。</p>
+<h3 id="一些小的优化点"><a href="#一些小的优化点" class="headerlink" title="一些小的优化点"></a>一些小的优化点</h3><p>我们还可以通过一些小的优化点来加快打包速度</p>
+<ul>
+<li><code>resolve.extensions</code>：用来表明文件后缀列表，默认查找顺序是 <code>[&#39;.js&#39;, &#39;.json&#39;]</code>，如果你的导入文件没有添加后缀就会按照这个顺序查找文件。我们应该尽可能减少后缀列表长度，然后将出现频率高的后缀排在前面</li>
+<li><code>resolve.alias</code>：可以通过别名的方式来映射一个路径，能让 Webpack 更快找到路径</li>
+<li><code>module.noParse</code>：如果你确定一个文件下没有其他依赖，就可以使用该属性让 Webpack 不扫描该文件，这种方式对于大型的类库很有帮助</li>
+</ul>
+<h2 id="减少-Webpack-打包后的文件体积"><a href="#减少-Webpack-打包后的文件体积" class="headerlink" title="减少 Webpack 打包后的文件体积"></a>减少 Webpack 打包后的文件体积</h2><blockquote>
+<p>注意：该内容也属于性能优化领域。</p>
+</blockquote>
+<h3 id="按需加载"><a href="#按需加载" class="headerlink" title="按需加载"></a>按需加载</h3><p>想必大家在开发 SPA 项目的时候，项目中都会存在十几甚至更多的路由页面。如果我们将这些页面全部打包进一个 JS 文件的话，虽然将多个请求合并了，但是同样也加载了很多并不需要的代码，耗费了更长的时间。那么为了首页能更快地呈现给用户，我们肯定是希望首页能加载的文件体积越小越好，<strong>这时候我们就可以使用按需加载，将每个路由页面单独打包为一个文件</strong>。当然不仅仅路由可以按需加载，对于 <code>loadash</code> 这种大型类库同样可以使用这个功能。</p>
+<p>按需加载的代码实现这里就不详细展开了，因为鉴于用的框架不同，实现起来都是不一样的。当然了，虽然他们的用法可能不同，但是底层的机制都是一样的。都是当使用的时候再去下载对应文件，返回一个 <code>Promise</code>，当 <code>Promise</code> 成功以后去执行回调。</p>
+<h3 id="Scope-Hoisting"><a href="#Scope-Hoisting" class="headerlink" title="Scope Hoisting"></a>Scope Hoisting</h3><p><strong>Scope Hoisting 会分析出模块之间的依赖关系，尽可能的把打包出来的模块合并到一个函数中去。</strong></p>
+<p>比如我们希望打包两个文件</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">// test.js</span><br><span class="line">export const a = 1</span><br><span class="line">// index.js</span><br><span class="line">import &#123; a &#125; from &apos;./test.js&apos;</span><br></pre></td></tr></table></figure>
+
+<p>对于这种情况，我们打包出来的代码会类似这样</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">[</span><br><span class="line">  /* 0 */</span><br><span class="line">  function (module, exports, require) &#123;</span><br><span class="line">    //...</span><br><span class="line">  &#125;,</span><br><span class="line">  /* 1 */</span><br><span class="line">  function (module, exports, require) &#123;</span><br><span class="line">    //...</span><br><span class="line">  &#125;</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+
+<p>但是如果我们使用 Scope Hoisting 的话，代码就会尽可能的合并到一个函数中去，也就变成了这样的类似代码</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[</span><br><span class="line">  /* 0 */</span><br><span class="line">  function (module, exports, require) &#123;</span><br><span class="line">    //...</span><br><span class="line">  &#125;</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+
+<p>这样的打包方式生成的代码明显比之前的少多了。如果在 Webpack4 中你希望开启这个功能，只需要启用 <code>optimization.concatenateModules</code> 就可以了。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">module.exports = &#123;</span><br><span class="line">  optimization: &#123;</span><br><span class="line">    concatenateModules: true</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="Tree-Shaking"><a href="#Tree-Shaking" class="headerlink" title="Tree Shaking"></a>Tree Shaking</h3><p><strong>Tree Shaking 可以实现删除项目中未被引用的代码</strong>，比如</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">// test.js</span><br><span class="line">export const a = 1</span><br><span class="line">export const b = 2</span><br><span class="line">// index.js</span><br><span class="line">import &#123; a &#125; from &apos;./test.js&apos;</span><br></pre></td></tr></table></figure>
+
+<p>对于以上情况，<code>test</code> 文件中的变量 <code>b</code> 如果没有在项目中使用到的话，就不会被打包到文件中。</p>
+<p>如果你使用 Webpack 4 的话，开启生产环境就会自动启动这个优化功能。</p>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>在这一章节中，我们学习了如何使用 Webpack 去进行性能优化以及如何减少打包时间。</p>
+<p>Webpack 的版本更新很快，各个版本之间实现优化的方式可能都会有区别，所以我没有使用过多的代码去展示如何实现一个功能。<strong>这一章节的重点是学习到我们可以通过什么方式去优化，具体的代码实现可以查找具体版本对应的代码即可。</strong></p>
+
+        
+    </section>
+</article>
+
+
+
+<div class="comments">
+    <div id="comments"></div>
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+    new Gitalk({
+        clientID: "Iv1.7b524fa73663f746",
+        clientSecret: "da62768ed19d33de5e7984610998539422123053",
+        repo: "izhaong.github.io",
+        owner: "izhaong",
+        admin: ["izhaong"],
+        id: "2019/07/13/Webpack 性能优化",
+        distractionFreeMode: true,
+        title: "Webpack 性能优化",
+        body: "https://zhonghao9527.xyz/2019/07/13/Webpack 性能优化/",
+        labels: ["Webpack"]
+    }).render('comments');
+    </script>
+</div>
+
+</div>
+        <footer class="footer">
+    Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>, Theme by <a href="https://github.com/sanonz/hexo-theme-concise" target="_blank">Concise</a>
+
+    
+    <script>
+        var _hmt = _hmt || [];
+        (function () {
+            var hm = document.createElement("script");
+            hm.src = "https://hm.baidu.com/hm.js?81e870cab2cc65e4a6a2a1574eb8ed1c";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(hm, s);
+        })();
+    </script>
+    
+</footer>
+
+    </main>
+
+    <script type="text/javascript" src="https://cdn.bootcss.com/jquery/1.9.0/jquery.min.js"></script>
+    <script type="text/javascript">
+    $(function() {
+        var nodes = {
+            nav: $('#nav'),
+            aside: $('#aside'),
+            asideInner: $('#aside-inner'),
+            navInner: $('#nav-inner')
+        };
+
+        var doing = false;
+        nodes.asideInner.on('webkitAnimationEnd mozAnimationEnd oAnimationEnd oanimationend animationend', function() {
+            if (nodes.aside.hasClass('mobile-open')) {
+                nodes.aside.removeClass('mobile-open');
+            } else {
+                nodes.aside.removeClass('mobile-close panel-show');
+            }
+            doing = false;
+        });
+        $('#open-panel, #aside-mask').on('click', function() {
+            if (doing) {
+                return;
+            }
+            
+            if (nodes.aside.hasClass('panel-show')) {
+                nodes.aside.addClass('mobile-close');
+            } else {
+                nodes.aside.addClass('mobile-open panel-show');
+            }
+        });
+        $('#open-menus').on('click', function() {
+            nodes.navInner.slideToggle();
+        });
+
+        if (window.innerWidth <= 960) {
+            setTimeout(function() {
+                nodes.navInner.slideUp();
+            }, 3000);
+        }
+    });
+    </script>
+    
+        <script type="text/javascript" src="/js/scrollspy.min.js"></script>
+        <script type="text/javascript">
+        $(document.body).scrollspy({target: '#aside-inner'});
+        </script>
+    
+
+</body>
+</html>

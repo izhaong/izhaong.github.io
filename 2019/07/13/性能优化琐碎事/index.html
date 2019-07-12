@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.9.0">
+    <meta charset="UTF-8">
+
+    
+
+    
+
+    <title>性能优化琐碎事 | 仲灏的博客</title>
+    <meta name="author" content="仲灏">
+    <meta name="version" content="1.0.0">
+    <meta name="keywords" content>
+    <meta name="description" content="图片优化计算图片大小对于一张 100 * 100 像素的图片来说，图像上有 10000 个像素点，如果每个像素的值是 RGBA 存储的话，那么也就是说每个像素有 4 个通道，每个通道 1 个字节（8 位 = 1个字节），所以该图片大小大概为 39KB（10000 * 1 * 4 / 1024）。但是在实际项目中，一张图片可能并不需要使用那么多颜色去显示，我们可以通过减少每个像素的调色板来相应缩小图片的大小。了解了如何计算图片大小的知识，那么对于如何优化图片，想必大家已经有 2 个思路了...">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+
+    
+    <link rel="alternate" href="/atom.xml" title="仲灏的博客" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/images/favicon.ico">
+    
+
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+    <main class="app">
+        <header class="header clearfix">
+    <div id="nav" class="nav">
+    <div class="nav-mobile">
+        <button id="open-panel" class="open-panel nav-mobile-item"><i class="icon-documents"></i></button>
+        <h1 class="nav-mobile-title nav-mobile-item">仲灏的博客</h1>
+        <button id="open-menus" class="open-panel nav-mobile-item"><i class="icon-library"></i></button>
+    </div>
+
+    <nav id="nav-inner" class="nav-inner">
+        
+            <a class="nav-item" href="/">
+                <span class="nav-text">首页</span>
+            </a>
+        
+            <a class="nav-item" href="/categories/front-end">
+                <span class="nav-text">前端</span>
+            </a>
+        
+            <a class="nav-item" href="/categories/back-end">
+                <span class="nav-text">后端</span>
+            </a>
+        
+            <a class="nav-item" href="/tags">
+                <span class="nav-text">标签</span>
+            </a>
+        
+            <a class="nav-item" href="/archives">
+                <span class="nav-text">归档</span>
+            </a>
+        
+            <a class="nav-item" href="/atom.xml">
+                <span class="nav-text">订阅</span>
+            </a>
+        
+            <a class="nav-item" href="/about">
+                <span class="nav-text">关于</span>
+            </a>
+        
+    </nav>
+</div>
+
+    <aside id="aside" class="aside">
+    <div id="aside-mask" class="aside-mask"></div>
+    <div id="aside-inner" class="aside-inner">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit"><i class="icon-search-stroke"></i></button><input type="hidden" name="sitesearch" value="https://zhonghao9527.xyz"></form>
+
+        
+        
+        
+        
+
+        
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#图片优化"><span class="toc-number">1.</span> <span class="toc-text">图片优化</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#计算图片大小"><span class="toc-number">1.1.</span> <span class="toc-text">计算图片大小</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#图片加载优化"><span class="toc-number">1.2.</span> <span class="toc-text">图片加载优化</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#DNS-预解析"><span class="toc-number">2.</span> <span class="toc-text">DNS 预解析</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#节流"><span class="toc-number">3.</span> <span class="toc-text">节流</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#防抖"><span class="toc-number">4.</span> <span class="toc-text">防抖</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#预加载"><span class="toc-number">5.</span> <span class="toc-text">预加载</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#预渲染"><span class="toc-number">6.</span> <span class="toc-text">预渲染</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#懒执行"><span class="toc-number">7.</span> <span class="toc-text">懒执行</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#懒加载"><span class="toc-number">8.</span> <span class="toc-text">懒加载</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#CDN"><span class="toc-number">9.</span> <span class="toc-text">CDN</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#小结"><span class="toc-number">10.</span> <span class="toc-text">小结</span></a></li></ol>
+        
+    </div>
+</aside>
+
+</header>
+
+        <div id="content" class="content"><article class="article" itemscope itemprop="blogPost">
+    
+    <header class="article-header">
+        
+        <h1 itemprop="name">
+            性能优化琐碎事
+        </h1>
+        
+        <div class="article-meta clearfix">
+            <a class="article-date" href="https://zhonghao9527.xyz/2019/07/13/性能优化琐碎事/index.html">
+    
+    <i class="icon-calendar"></i>
+    
+    <time datetime="2019-07-12T16:35:42.294Z" itemprop="datePublished">2019-07-13</time>
+</a>
+
+            
+<div class="article-tag-list">
+    <i class="icon-tag"></i>
+    <a class="article-tag-link" href="/tags/性能优化/">性能优化</a>
+</div>
+
+
+        </div>
+    </header>
+    
+    <section class="article-body markdown-body">
+        
+        <h2 id="图片优化"><a href="#图片优化" class="headerlink" title="图片优化"></a>图片优化</h2><h3 id="计算图片大小"><a href="#计算图片大小" class="headerlink" title="计算图片大小"></a>计算图片大小</h3><p>对于一张 100 * 100 像素的图片来说，图像上有 10000 个像素点，如果每个像素的值是 <strong>RGBA</strong> 存储的话，那么也就是说每个像素有 4 个通道，每个通道 1 个字节（8 位 = 1个字节），所以该图片大小大概为 39KB（10000 * 1 * 4 / 1024）。</p>
+<p>但是在实际项目中，一张图片可能并不需要使用那么多颜色去显示，我们可以通过减少每个像素的调色板来相应缩小图片的大小。</p>
+<p>了解了如何计算图片大小的知识，那么对于如何优化图片，想必大家已经有 2 个思路了：</p>
+<ul>
+<li><strong>减少像素点</strong></li>
+<li><strong>减少每个像素点能够显示的颜色</strong><a id="more"></a>
+<h3 id="图片加载优化"><a href="#图片加载优化" class="headerlink" title="图片加载优化"></a>图片加载优化</h3></li>
+</ul>
+<ol>
+<li>不用图片。很多时候会使用到很多修饰类图片，其实这类修饰图片完全可以用 CSS 去代替。</li>
+<li>对于移动端来说，屏幕宽度就那么点，完全没有必要去加载原图浪费带宽。一般图片都用 CDN 加载，可以计算出适配屏幕的宽度，然后去请求相应裁剪好的图片。</li>
+<li>小图使用 base64 格式</li>
+<li>将多个图标文件整合到一张图片中（雪碧图）</li>
+<li>选择正确的图片格式：<ul>
+<li>对于能够显示 WebP 格式的浏览器尽量使用 WebP 格式。因为 WebP 格式具有更好的图像数据压缩算法，能带来更小的图片体积，而且拥有肉眼识别无差异的图像质量，缺点就是兼容性并不好</li>
+<li>小图使用 PNG，其实对于大部分图标这类图片，完全可以使用 SVG 代替</li>
+<li>照片使用 JPEG</li>
+</ul>
+</li>
+</ol>
+<h2 id="DNS-预解析"><a href="#DNS-预解析" class="headerlink" title="DNS 预解析"></a>DNS 预解析</h2><p>DNS 解析也是需要时间的，可以通过预解析的方式来预先获得域名所对应的 IP。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;link rel=&quot;dns-prefetch&quot; href=&quot;//yuchengkai.cn&quot;&gt;</span><br></pre></td></tr></table></figure>
+
+<h2 id="节流"><a href="#节流" class="headerlink" title="节流"></a>节流</h2><p>考虑一个场景，滚动事件中会发起网络请求，但是我们并不希望用户在滚动过程中一直发起请求，而是隔一段时间发起一次，对于这种情况我们就可以使用节流。</p>
+<p>理解了节流的用途，我们就来实现下这个函数</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">// func是用户传入需要防抖的函数</span><br><span class="line">// wait是等待时间</span><br><span class="line">const throttle = (func, wait = 50) =&gt; &#123;</span><br><span class="line">  // 上一次执行该函数的时间</span><br><span class="line">  let lastTime = 0</span><br><span class="line">  return function(...args) &#123;</span><br><span class="line">    // 当前时间</span><br><span class="line">    let now = +new Date()</span><br><span class="line">    // 将当前时间和上一次执行函数时间对比</span><br><span class="line">    // 如果差值大于设置的等待时间就执行函数</span><br><span class="line">    if (now - lastTime &gt; wait) &#123;</span><br><span class="line">      lastTime = now</span><br><span class="line">      func.apply(this, args)</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">setInterval(</span><br><span class="line">  throttle(() =&gt; &#123;</span><br><span class="line">    console.log(1)</span><br><span class="line">  &#125;, 500),</span><br><span class="line">  1</span><br><span class="line">)</span><br></pre></td></tr></table></figure>
+
+<h2 id="防抖"><a href="#防抖" class="headerlink" title="防抖"></a>防抖</h2><p>考虑一个场景，有一个按钮点击会触发网络请求，但是我们并不希望每次点击都发起网络请求，而是当用户点击按钮一段时间后没有再次点击的情况才去发起网络请求，对于这种情况我们就可以使用防抖。</p>
+<p>理解了防抖的用途，我们就来实现下这个函数</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">// func是用户传入需要防抖的函数</span><br><span class="line">// wait是等待时间</span><br><span class="line">const debounce = (func, wait = 50) =&gt; &#123;</span><br><span class="line">  // 缓存一个定时器id</span><br><span class="line">  let timer = 0</span><br><span class="line">  // 这里返回的函数是每次用户实际调用的防抖函数</span><br><span class="line">  // 如果已经设定过定时器了就清空上一次的定时器</span><br><span class="line">  // 开始一个新的定时器，延迟执行用户传入的方法</span><br><span class="line">  return function(...args) &#123;</span><br><span class="line">    if (timer) clearTimeout(timer)</span><br><span class="line">    timer = setTimeout(() =&gt; &#123;</span><br><span class="line">      func.apply(this, args)</span><br><span class="line">    &#125;, wait)</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="预加载"><a href="#预加载" class="headerlink" title="预加载"></a>预加载</h2><p>在开发中，可能会遇到这样的情况。有些资源不需要马上用到，但是希望尽早获取，这时候就可以使用预加载。</p>
+<p>预加载其实是声明式的 <code>fetch</code> ，强制浏览器请求资源，并且不会阻塞 <code>onload</code> 事件，可以使用以下代码开启预加载</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;link rel=&quot;preload&quot; href=&quot;http://example.com&quot;&gt;</span><br></pre></td></tr></table></figure>
+
+<p>预加载可以一定程度上降低首屏的加载时间，因为可以将一些不影响首屏但重要的文件延后加载，唯一缺点就是兼容性不好。</p>
+<h2 id="预渲染"><a href="#预渲染" class="headerlink" title="预渲染"></a>预渲染</h2><p>可以通过预渲染将下载的文件预先在后台渲染，可以使用以下代码开启预渲染</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;link rel=&quot;prerender&quot; href=&quot;http://example.com&quot;&gt;</span><br></pre></td></tr></table></figure>
+
+<p>预渲染虽然可以提高页面的加载速度，但是要确保该页面大概率会被用户在之后打开，否则就是白白浪费资源去渲染。</p>
+<h2 id="懒执行"><a href="#懒执行" class="headerlink" title="懒执行"></a>懒执行</h2><p>懒执行就是将某些逻辑延迟到使用时再计算。该技术可以用于首屏优化，对于某些耗时逻辑并不需要在首屏就使用的，就可以使用懒执行。懒执行需要唤醒，一般可以通过定时器或者事件的调用来唤醒。</p>
+<h2 id="懒加载"><a href="#懒加载" class="headerlink" title="懒加载"></a>懒加载</h2><p>懒加载就是将不关键的资源延后加载。</p>
+<p>懒加载的原理就是只加载自定义区域（通常是可视区域，但也可以是即将进入可视区域）内需要加载的东西。对于图片来说，先设置图片标签的 <code>src</code> 属性为一张占位图，将真实的图片资源放入一个自定义属性中，当进入自定义区域时，就将自定义属性替换为 <code>src</code> 属性，这样图片就会去下载资源，实现了图片懒加载。</p>
+<p>懒加载不仅可以用于图片，也可以使用在别的资源上。比如进入可视区域才开始播放视频等等。</p>
+<h2 id="CDN"><a href="#CDN" class="headerlink" title="CDN"></a>CDN</h2><p>CDN 的原理是尽可能的在各个地方分布机房缓存数据，这样即使我们的根服务器远在国外，在国内的用户也可以通过国内的机房迅速加载资源。</p>
+<p>因此，我们可以将静态资源尽量使用 CDN 加载，由于浏览器对于单个域名有并发请求上限，可以考虑使用多个 CDN 域名。并且对于 CDN 加载静态资源需要注意 CDN 域名要与主站不同，否则每次请求都会带上主站的 Cookie，平白消耗流量。</p>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>这些碎片化的性能优化点看似很短，但是却能在出现性能问题时简单高效的提高性能，并且好几个点都是面试高频考点，比如节流、防抖。如果你还没有在项目中使用过这些技术，可以尝试着用到项目中，体验下功效。</p>
+
+        
+    </section>
+</article>
+
+
+
+<div class="comments">
+    <div id="comments"></div>
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+    new Gitalk({
+        clientID: "Iv1.7b524fa73663f746",
+        clientSecret: "da62768ed19d33de5e7984610998539422123053",
+        repo: "izhaong.github.io",
+        owner: "izhaong",
+        admin: ["izhaong"],
+        id: "2019/07/13/性能优化琐碎事",
+        distractionFreeMode: true,
+        title: "性能优化琐碎事",
+        body: "https://zhonghao9527.xyz/2019/07/13/性能优化琐碎事/",
+        labels: ["性能优化"]
+    }).render('comments');
+    </script>
+</div>
+
+</div>
+        <footer class="footer">
+    Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>, Theme by <a href="https://github.com/sanonz/hexo-theme-concise" target="_blank">Concise</a>
+
+    
+    <script>
+        var _hmt = _hmt || [];
+        (function () {
+            var hm = document.createElement("script");
+            hm.src = "https://hm.baidu.com/hm.js?81e870cab2cc65e4a6a2a1574eb8ed1c";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(hm, s);
+        })();
+    </script>
+    
+</footer>
+
+    </main>
+
+    <script type="text/javascript" src="https://cdn.bootcss.com/jquery/1.9.0/jquery.min.js"></script>
+    <script type="text/javascript">
+    $(function() {
+        var nodes = {
+            nav: $('#nav'),
+            aside: $('#aside'),
+            asideInner: $('#aside-inner'),
+            navInner: $('#nav-inner')
+        };
+
+        var doing = false;
+        nodes.asideInner.on('webkitAnimationEnd mozAnimationEnd oAnimationEnd oanimationend animationend', function() {
+            if (nodes.aside.hasClass('mobile-open')) {
+                nodes.aside.removeClass('mobile-open');
+            } else {
+                nodes.aside.removeClass('mobile-close panel-show');
+            }
+            doing = false;
+        });
+        $('#open-panel, #aside-mask').on('click', function() {
+            if (doing) {
+                return;
+            }
+            
+            if (nodes.aside.hasClass('panel-show')) {
+                nodes.aside.addClass('mobile-close');
+            } else {
+                nodes.aside.addClass('mobile-open panel-show');
+            }
+        });
+        $('#open-menus').on('click', function() {
+            nodes.navInner.slideToggle();
+        });
+
+        if (window.innerWidth <= 960) {
+            setTimeout(function() {
+                nodes.navInner.slideUp();
+            }, 3000);
+        }
+    });
+    </script>
+    
+        <script type="text/javascript" src="/js/scrollspy.min.js"></script>
+        <script type="text/javascript">
+        $(document.body).scrollspy({target: '#aside-inner'});
+        </script>
+    
+
+</body>
+</html>
