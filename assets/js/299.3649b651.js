@@ -1,0 +1,1 @@
+(window.webpackJsonp=window.webpackJsonp||[]).push([[299],{798:function(t,e,n){"use strict";n.r(e);var s=n(21),l=Object(s.a)({},(function(){var t=this.$createElement,e=this._self._c||t;return e("ContentSlotsDistributor",{attrs:{"slot-key":this.$parent.slotKey}},[e("p",[this._v("因为各种原因情况下有对比 西数 和 希捷 系列硬盘产品")])])}),[],!1,null,null,null);e.default=l.exports}}]);
